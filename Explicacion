@@ -1,0 +1,4 @@
+RS nos permite hacer un set de replica de data
+
+la prioridad mientras más alta es más probable que ese esclavo sea elegido.
+

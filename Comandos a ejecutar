@@ -1,0 +1,95 @@
+# Grupo 11
+### Crear las carpetas para el volumen
+
+mkdir mongodb1/data
+mkdir mongodb2/data
+mkdir mongodb3/data
+mkdir mongodb4/data
+mkdir mongodb5/data
+
+
+# Levantar los contenedores:
+
+docker run -d --name mdb1  -v ~/mongodb1/data:/data/db -p 27101:27017 mongo:4.0 mongod --bind_ip 0.0.0.0 --replSet red0
+docker run -d --name mdb2  -v ~/mongodb2/data:/data/db -p 27102:27017 mongo:4.0 mongod --bind_ip 0.0.0.0 --replSet red0
+docker run -d --name mdb3  -v ~/mongodb3/data:/data/db -p 27103:27017 mongo:4.0 mongod --replSet red0
+docker run -d --name mdb4  -v ~/mongodb4/data:/data/db -p 27104:27017 mongo:4.0 mongod --replSet red0
+docker run -d --name mdb5  -v ~/mongodb5/data:/data/db -p 27105:27017 mongo:4.0 mongod --replSet red0
+
+### Entramos a cada maquina de la red y editamos 
+
+docker exec -it mdb1 bash
+docker exec -it mdb2 bash
+docker exec -it mdb3 bash
+docker exec -it mdb4 bash
+docker exec -it mdb5 bash
+
+#### Necesitamos nano
+apt-get update
+apt-get install nano
+
+
+
+nano /etc/mongod.conf 
+
+#### Network interfaces 
+net:
+    port: 27017
+    bindIp: 0.0.0.0
+
+#### Editamos en replication 
+replication:
+    replSetName: "red0"
+
+### Reiniciamos servicio
+systemclt start mongod
+
+# Relacionarlos para crear el set de replica, esto solo lo colocamos en el nodo master
+rs.initiate(
+    {
+        _id: "red0",
+        members:[
+            {
+                _id:0, host: "0.0.0.0:27101",
+            },
+            {
+                _id:1, host: "0.0.0.0:27102"
+            },
+            {
+                _id:2, host: "0.0.0.0:27103"
+            },
+            {
+                _id:3, host: "0.0.0.0:27104"
+            },
+            {
+                _id:4, host: "0.0.0.0:27105"
+            },
+        ]
+    }
+)
+
+
+//PRUEBA CON 2
+rs.initiate(
+{
+_id: "red0",
+members:[
+{_id:0, host: "0.0.0.0:27101"},
+{_id:1, host: "0.0.0.0:27102"}
+]
+}
+)
+
+
+
+
+
+cfg = rs.conf();
+cfg.members[0].priority = 5;
+cfg.members[1].priority = 4;
+cfg.members[2].priority = 3;
+cfg.members[3].priority = 2;
+cfg.members[4].priority = 1;
+rs.reconfig(cfg);
+
+

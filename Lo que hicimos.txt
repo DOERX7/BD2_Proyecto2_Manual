@@ -1,0 +1,56 @@
+
+docker pull mongo:4
+
+
+### Se crea la red 
+
+docker network create mongo-g11-cluster
+
+
+
+### Levantamos nuestros contenedores con docker
+docker run -d --net mongo-g11-cluster -p 27017:27017 --name mdb1 mongo:4 mongod --replSet mongodb-replicaset --port 27017
+docker run -d --net mongo-g11-cluster -p 27018:27018 --name mdb2 mongo:4 mongod --replSet mongodb-replicaset --port 27018
+docker run -d --net mongo-g11-cluster -p 27019:27019 --name mdb3 mongo:4 mongod --replSet mongodb-replicaset --port 27019
+docker run -d --net mongo-g11-cluster -p 27020:27020 --name mdb4 mongo:4 mongod --replSet mongodb-replicaset --port 27020
+docker run -d --net mongo-g11-cluster -p 27021:27021 --name mdb5 mongo:4 mongod --replSet mongodb-replicaset --port 27021
+
+
+
+
+### Los agregamos en los hosts de nuestro servidor
+
+nano /etc/hosts
+
+127.0.0.1       mdb1 mdb2 mdb3 mdb4 mdb5
+
+### Tenemos que acceder a quien va a ser el master
+
+docker exec -it mdb1 mongo
+
+
+### Creamos la base de datos y configuramos el cluster anadiendo los esclavos
+
+db = (new Mongo('localhost:27017')).getDB('DBG11')
+config={"_id":"mongodb-replicaset","members":[{"_id":0,"host":"mdb1:27017"},{"_id":1,"host":"mdb2:27018"},{"_id":2,"host":"mdb3:27019"},{"_id":3,"host":"mdb4:27020"},{"_id":4,"host":"mdb5:27021"}]}
+rs.initiate(config)
+
+
+### Configuramos la prioridad para darle maxima al maestro y luego al 5to contenedor que es esclavo 
+cfg = rs.conf();
+cfg.members[0].priority = 5;
+cfg.members[1].priority = 1;
+cfg.members[2].priority = 2;
+cfg.members[3].priority = 3;
+cfg.members[4].priority = 4;
+rs.reconfig(cfg);
+
+
+### Para conectarnos esta es la cadena 
+mongodb://localhost:27017,localhost:27018,localhost:27019,localhost:27020,localhost:27021/DBG11?replicaSet=mongodb-replicaset
+
+
+
+
+
+
